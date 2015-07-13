@@ -7,9 +7,9 @@
 //
 
 import Cocoa
+import Quartz
 
 class MasterViewController: NSViewController {
-
     @IBOutlet weak var bugsTableView: NSTableView!
     @IBOutlet weak var bugTitleTextField: NSTextField!
     @IBOutlet weak var bugImageView: NSImageView!
@@ -73,6 +73,13 @@ class MasterViewController: NSViewController {
         self.bugImageView.image = image
         self.bugRating.rating = Float(rating)
     }
+    
+    func reloadSelectedBugRow() {
+        let indexSet = NSIndexSet(index: self.bugsTableView.selectedRow)
+        let columnSet = NSIndexSet(index: 0)
+        
+        self.bugsTableView.reloadDataForRowIndexes(indexSet, columnIndexes: columnSet)
+    }
 }
 
 // MARK: - NSTableViewDataSource
@@ -108,13 +115,24 @@ extension MasterViewController: NSTableViewDelegate {
 // MARK: - EDStarRatingProtocol
 
 extension MasterViewController: EDStarRatingProtocol {
-    
+    func starsSelectionChanged(control: EDStarRating!, rating: Float) {
+        if let selectedDoc = selectedBugDoc() {
+            selectedDoc.data.rating = Double(self.bugRating.rating)
+        }
+    }
 }
 
 // MARK: - IBActions
 
 extension MasterViewController {
 
+    @IBAction func bugTitleDidEndEdit(sender: AnyObject) {
+        if let selectedDoc = selectedBugDoc() {
+            selectedDoc.data.title = self.bugTitleTextField.stringValue
+            reloadSelectedBugRow()
+        }
+    }
+    
     @IBAction func addBug(sender: AnyObject) {
         let newDoc = ScaryBugDoc(title: "New Bug", rating: 0.0, thumbImage: nil, fullImage: nil)
         
@@ -127,8 +145,35 @@ extension MasterViewController {
     }
     
     @IBAction func removeBug(sender: AnyObject) {
+        if let selectedDoc = selectedBugDoc() {
+            self.bugs.removeAtIndex(self.bugsTableView.selectedRow)
+            self.bugsTableView.removeRowsAtIndexes(NSIndexSet(index: self.bugsTableView.selectedRow), withAnimation: NSTableViewAnimationOptions.SlideRight)
+            
+            updateDetailInfo(nil)
+        }
     }
     
+    @IBAction func changePicture(sender: AnyObject) {
+        if let selectedDoc = selectedBugDoc() {
+            IKPictureTaker().beginPictureTakerSheetForWindow(self.view.window,
+                withDelegate: self,
+                didEndSelector: "pictureTakerDidEnd:returnCode:contextInfo:",
+                contextInfo: nil)
+        }
+    }
+    
+    func pictureTakerDidEnd(picker: IKPictureTaker, returnCode: NSInteger, contextInfo: UnsafePointer<Void>) {
+        let image = picker.outputImage()
+        
+        if image != nil && returnCode == NSModalResponseOK {
+            self.bugImageView.image = image
+            if let selectedDoc = selectedBugDoc() {
+                selectedDoc.fullImage = image
+                selectedDoc.thumbImage = image.imageByScalingAndCroppingForSize(CGSize(width: 44, height: 44))
+                reloadSelectedBugRow()
+            }
+        }
+    }
 }
 
 
