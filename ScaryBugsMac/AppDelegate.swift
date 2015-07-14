@@ -18,15 +18,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(aNotification: NSNotification) {
         masterViewController = MasterViewController(nibName: "MasterViewController", bundle: nil)
         
-        masterViewController.setupSampleBugs()
+        if let data = NSUserDefaults.standardUserDefaults().objectForKey("bugs") as? NSData {
+            masterViewController.bugs = NSKeyedUnarchiver.unarchiveObjectWithData(data) as! [ScaryBugDoc]
+        } else {
+            masterViewController.setupSampleBugs()
+        }
+        
         window.contentView.addSubview(masterViewController.view)
         masterViewController.view.frame = (window.contentView as! NSView).bounds
+        
+        masterViewController.view.translatesAutoresizingMaskIntoConstraints = false
+        let verticalConstraints = NSLayoutConstraint.constraintsWithVisualFormat("V:|[subView]|",
+            options: NSLayoutFormatOptions(0),
+            metrics: nil,
+            views: ["subView" : masterViewController.view])
+        let horizontalConstraints = NSLayoutConstraint.constraintsWithVisualFormat("H:|[subView]|",
+            options: NSLayoutFormatOptions(0),
+            metrics: nil,
+            views: ["subView" : masterViewController.view])
+        
+        NSLayoutConstraint.activateConstraints(verticalConstraints + horizontalConstraints)
     }
 
     func applicationWillTerminate(aNotification: NSNotification) {
-        // Insert code here to tear down your application
+        masterViewController.saveBugs()
     }
-
-
 }
 

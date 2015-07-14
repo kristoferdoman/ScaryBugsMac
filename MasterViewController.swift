@@ -10,10 +10,13 @@ import Cocoa
 import Quartz
 
 class MasterViewController: NSViewController {
+    
     @IBOutlet weak var bugsTableView: NSTableView!
     @IBOutlet weak var bugTitleTextField: NSTextField!
     @IBOutlet weak var bugImageView: NSImageView!
     @IBOutlet weak var bugRating: EDStarRating!
+    @IBOutlet weak var deleteButton: NSButton!
+    @IBOutlet weak var changePictureButton: NSButton!
     
     var bugs = [ScaryBugDoc]()
     
@@ -33,7 +36,7 @@ class MasterViewController: NSViewController {
         
         self.bugRating.maxRating = 5
         self.bugRating.horizontalMargin = 12
-        self.bugRating.editable = true
+        self.bugRating.editable = false
         self.bugRating.displayMode = UInt(EDStarRatingDisplayFull)
         
         self.bugRating.rating = Float(0.0)
@@ -80,6 +83,12 @@ class MasterViewController: NSViewController {
         
         self.bugsTableView.reloadDataForRowIndexes(indexSet, columnIndexes: columnSet)
     }
+    
+    func saveBugs() {
+        let data = NSKeyedArchiver.archivedDataWithRootObject(self.bugs)
+        NSUserDefaults.standardUserDefaults().setObject(data, forKey: "bugs")
+        NSUserDefaults.standardUserDefaults().synchronize()
+    }
 }
 
 // MARK: - NSTableViewDataSource
@@ -109,6 +118,12 @@ extension MasterViewController: NSTableViewDelegate {
     func tableViewSelectionDidChange(notification: NSNotification) {
         let selectedDoc = selectedBugDoc()
         updateDetailInfo(selectedDoc)
+        
+        let buttonsEnabled = (selectedDoc != nil)
+        deleteButton.enabled = buttonsEnabled
+        changePictureButton.enabled = buttonsEnabled
+        bugRating.editable = buttonsEnabled
+        bugTitleTextField.enabled = buttonsEnabled
     }
 }
 
@@ -160,6 +175,12 @@ extension MasterViewController {
                 didEndSelector: "pictureTakerDidEnd:returnCode:contextInfo:",
                 contextInfo: nil)
         }
+    }
+    
+    @IBAction func resetData(sender: AnyObject) {
+        setupSampleBugs()
+        updateDetailInfo(nil)
+        bugsTableView.reloadData()
     }
     
     func pictureTakerDidEnd(picker: IKPictureTaker, returnCode: NSInteger, contextInfo: UnsafePointer<Void>) {
